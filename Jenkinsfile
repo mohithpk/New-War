@@ -1,47 +1,65 @@
 pipeline {
-    agent any
-    tools {
-        maven 'Maven363'
-    }
-    options {
-        timeout(10)
-        buildDiscarder logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '5', numToKeepStr: '5')
-    }
+    agent { label "project1" }
+    
+    triggers {
+        pollSCM('* * * * *')
+    }    
+
     stages {
-        stage('Build') {
+        stage('clone_project_A') {
             steps {
-                sh "mvn clean install"
+                echo 'clone project A'
+                git branch: 'main', url: 'https://github.com/mohithpk/new-war.git'
             }
         }
-        stage('upload artifact to nexus') {
+        stage('build_project_A') {
             steps {
-                nexusArtifactUploader artifacts: [
-                    [
-                        artifactId: 'wwp', 
-                        classifier: '', 
-                        file: 'target/wwp-1.0.0.war', 
-                        type: 'war'
-                    ]
-                ], 
-                    credentialsId: 'nexus3', 
-                    groupId: 'koddas.web.war', 
-                    nexusUrl: '10.0.0.91:8081', 
-                    nexusVersion: 'nexus3', 
-                    protocol: 'http', 
-                    repository: 'samplerepo', 
-                    version: '1.0.0'
+                echo 'build_projectA'
+                sh 'yum install maven -y'
+                sh 'mvn -Dmaven.test.failure.ignore=true install'
+            }
+        } 
+        stage('Docker_build') {
+            steps {
+                echo 'Docker build_projectd'
+                sh 'docker build -t project_mohith .' 
             }
         }
-    }
-    post {
-        always{
-            deleteDir()
+        stage('login to dockerhub') {
+            steps {
+                echo 'login to dockerhub'
+                sh 'docker login -u mohithp -p Tvisha123@'
+            }
+        } 
+        stage('Tag the Image') {
+            steps {
+                echo 'Tag the Image'
+                sh 'docker tag  project_mohith mohithp/project_mohith'
+            }
+        } 
+        stage('Deploy to docker hub') {
+            steps {
+                echo 'Deploy to docker hub'
+                sh 'docker push mohithp/project_mohith'
+            }
         }
-        failure {
-            echo "sendmail -s mvn build failed receipients@my.com"
+        stage('Remove Docker conatiner') {
+            steps {
+                echo 'Remove Docker conatiner'
+                sh 'docker stop project_mohith_container || true'
+                sh 'docker rm project_mohith_container || true'
+            }
+        }        
+        stage('Run docker image') {
+            steps {
+                echo 'Deploy to docker hub'
+                sh 'docker run --name project_mohith_container -d -p 8181:8080 mohithp/project_mohith'
+            }
         }
-        success {
-            echo "The job is successful"
-        }
+        stage('added one more stage') {
+            steps {
+                echo 'added one more stage'                
+            }
+        }        
     }
 }
