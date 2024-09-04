@@ -12,13 +12,14 @@ pipeline {
                 git branch: 'main', url: 'https://github.com/mohithpk/new-war.git'
             }
         }
-        stage('build_project_A') {
+         stage('build_project_A') {
             steps {
-                echo 'build_projectA'
-                sh 'yum install maven -y'
-                sh 'mvn -Dmaven.test.failure.ignore=true install'
+               echo 'build_projectA'
+               sh 'yum install -y maven'
+               sh 'mvn -Dmaven.test.failure.ignore=true install'
             }
-        } 
+        }
+
         stage('Docker_build') {
             steps {
                 echo 'Docker build_projectd'
